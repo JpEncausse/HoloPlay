@@ -23,7 +23,9 @@
   <body>
     <script src="js/three.js"></script>
     <script src="js/holoplay.js"></script>
-        
+    <script src="js/loaders/GLTFLoader.js"></script>
+    <script src="js/WebGL.js"></script>
+
     <script>
       //Basic elements for a Three.js/HoloPlay scene
       var scene, camera, renderer, holoplay;
@@ -36,31 +38,76 @@
       var cubeGeometry;
       var cubeMaterial;
       var cubes;
+      var cubeMovements;
             
       //Initialize our variables
       function init(){
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(12.5, window.innerWidth/window.innerHeight, 0.1, 1000);
         camera.position.set(0,0,20);
+
         renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
+
         holoplay = new HoloPlay(scene, camera, renderer);
+
+
         directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1);
         directionalLight.position.set (0, 1, 2);
         scene.add(directionalLight);
+
         ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
         scene.add(ambientLight);
+
+
         cubes = [];
+        cubeMovements = [];
+
         cubeGeometry = new THREE.BoxGeometry(1,1,1);
         cubeMaterial = new THREE.MeshLambertMaterial();
         for(var i = 0; i < 3; i++){
           cubes.push(new THREE.Mesh(cubeGeometry, cubeMaterial));
           cubes[i].position.set(1 - i, 1 - i, 1 - i);
-          scene.add(cubes[i]);       
+          scene.add(cubes[i]);
+          cubeMovements.push(Math.random() * 0.1);
         }
-      }
-            
+
+        // Instantiate a loader
+        var loader = new THREE.GLTFLoader().setPath( 'gltf/' );
+
+        // Optional: Provide a DRACOLoader instance to decode compressed mesh data
+        //THREE.DRACOLoader.setDecoderPath( '/examples/js/libs/draco' );
+        //loader.setDRACOLoader( new THREE.DRACOLoader() );
+
+        // Load a glTF resource
+        loader.load(
+            // resource URL
+            'scene.gltf',
+            // called when the resource is loaded
+            function ( gltf ) {
+
+                scene.add( gltf.scene );
+
+                gltf.animations; // Array<THREE.AnimationClip>
+                gltf.scene; // THREE.Scene
+                gltf.scenes; // Array<THREE.Scene>
+                gltf.cameras; // Array<THREE.Camera>
+                gltf.asset; // Object
+            },
+            // called while loading is progressing
+            function ( xhr ) {
+                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+            },
+            // called when loading has errors
+            function ( error ) {
+                console.log( 'An error happened' );
+            }
+        );
+        
+    }
+    
+
       //Resize window on size change
       window.addEventListener('resize', function(){
           var width = window.innerWidth;
@@ -74,10 +121,20 @@
       function draw(){
         holoplay.render();
       }
-            
+
+        function update(){
+            for(var i = 0; i < cubes.length; i++){
+                cubes[i].position.x += cubeMovements[i];
+                if(Math.abs(cubes[i].position.x) > 3){
+                cubeMovements[i] = -cubeMovements[i];
+                }
+            }
+        }
+
       //Game loop
       function RunApp(){
         requestAnimationFrame(RunApp);
+        update();
         draw();
       }
             
